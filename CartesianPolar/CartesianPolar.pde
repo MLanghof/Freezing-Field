@@ -20,6 +20,10 @@ void setup()
   
   stroke(color(200, 200, 255, 20));
   fill(color(200, 200, 255, 20));
+  
+  loadPixels();
+  savedPixels = new color[pixels.length];
+  arrayCopy(pixels, savedPixels);
 }
 
 
@@ -27,11 +31,17 @@ int explosionCount = 0;
 
 void draw()
 {
+  loadPixels();
+  arrayCopy(savedPixels, pixels);
+  updatePixels();
+  
+  stroke(color(200, 200, 255, 20));
+  fill(color(200, 200, 255, 20));
   
   for (int i = 0; i < 400; i++)
   {
     float r = random(RADIUS_RANGE) + INNER_RADIUS;
-    float theta = random(90) - 90 * (explosionCount % 4) + 270;
+    float theta = random(90) + 90 * (explosionCount % 4);
     
     
     float x = r * cos(theta);
@@ -41,7 +51,7 @@ void draw()
     translate(height/2, height/2);
     scale(1 / displayScale);
     strokeWeight(2);
-    point(x, y);
+    point(x, -y); // Inverted y because of how screen coordinates work
     
     
     resetMatrix();
@@ -53,6 +63,61 @@ void draw()
     
     explosionCount++;
   }
+  
+  loadPixels();
+  arrayCopy(pixels, savedPixels);
+  
+  if (drawMouse)
+  {
+    resetMatrix();
+    noStroke();
+    fill(255, 20, 80);
+    ellipse(height / 2 + xMouse/displayScale, height/2 - yMouse/displayScale, 7, 7);
+    ellipse(height + (width-height)/2 + 2*(thetaMouse - 180)/displayScale,
+            height/2 + 2*(-rMouse+OUTER_RADIUS/2)/displayScale, 7, 7);
+  }
+}
+
+color[] savedPixels;
+
+float xMouse, yMouse, rMouse, thetaMouse;
+boolean drawMouse;
+
+void mouseMoved()
+{
+  drawMouse = false;
+  if (mouseX < height)
+  {
+    // In cartesian area
+    xMouse = (mouseX - height/2) * displayScale;
+    yMouse = -(mouseY - height/2) * displayScale;
+    float r = sqrt(sq(xMouse) + sq(yMouse));
+    if ((r < INNER_RADIUS) || (r > OUTER_RADIUS)) return;
+    
+    rMouse = r;
+    thetaMouse = degrees(atan2(yMouse, xMouse));
+    if (thetaMouse < 0) thetaMouse += 360;
+    
+    drawMouse = true;
+  }
+  else
+  {
+    // In polar area
+    rMouse = (-(mouseY - height/2) * displayScale + OUTER_RADIUS) / 2;
+    thetaMouse = ((mouseX - (height + (width-height)/2)) * displayScale / 2) + 180;
+    
+    if ((rMouse < INNER_RADIUS) || (rMouse > OUTER_RADIUS) ||
+        (thetaMouse < 0) || (thetaMouse > 360)) return;
+        
+    xMouse = rMouse * cos(radians(thetaMouse));
+    yMouse = rMouse * sin(radians(thetaMouse));
+    
+    drawMouse = true;
+  }
+}
+void mouseDragged()
+{
+  mouseMoved();
 }
 
 void drawTexts()
