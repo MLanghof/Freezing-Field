@@ -14,8 +14,8 @@ void setup()
   background(0);
   smooth(2);
   
+  // Do some labeling
   drawTexts();
-  
   drawRanges();
   
   stroke(color(200, 200, 255, 20));
@@ -30,26 +30,31 @@ void draw()
   
   for (int i = 0; i < 400; i++)
   {
+    // Generate uniformly random polar coordinates
     float r = random(RADIUS_RANGE) + INNER_RADIUS;
     float theta = random(90) - 90 * (explosionCount % 4) + 270;
     
-    
+    // Transform to cartesian
     float x = r * cos(theta);
     float y = r * sin(theta);
     
+    // Mark the picked point in the cartesian view
     resetMatrix();
     translate(height/2, height/2);
     scale(1 / displayScale);
     strokeWeight(2);
+    
     point(x, y);
     
-    
+    // Mark the picked point in the polar view
     resetMatrix();
     translate(height + (width-height)/2, height/2);
     scale(2 / displayScale);
     translate(-360/2, OUTER_RADIUS/2);
     strokeWeight(1);
+    
     point(theta, -r);
+    
     
     explosionCount++;
   }
