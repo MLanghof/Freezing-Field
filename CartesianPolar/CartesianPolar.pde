@@ -3,7 +3,7 @@
 // Adjust this until the sketch fits your screen resolution.
 float displayScale = 2.0;
 
-final float INNER_RADIUS = 230;
+final float INNER_RADIUS = 140;
 final float OUTER_RADIUS = 710;
 final float RADIUS_RANGE = OUTER_RADIUS - INNER_RADIUS;
 
