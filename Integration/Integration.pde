@@ -6,7 +6,7 @@ float displayScale = 2;
 
 // Integration step. Increase for faster but less precise calculations.
 // Small values also make the visualization a bit more ugly.
-float dr = 10;
+float dr = 2;
 
 // Enable this so the integrated arcs are more distinguishable. 
 boolean alternatingColors = true;
@@ -14,8 +14,14 @@ boolean alternatingColors = true;
 // Controls the amount of axis annotations.
 int diagramLabelCount = 10;
 
-// Controls the amount of headroom the diagram leaves above the probabilities
-float heightReserver = 0.8;
+// Controls the amount of headroom the diagram leaves above the probabilities.
+// More precisely, this is the fraction of the diagram height that the graph will reach.
+float heightReserver = 1.2;
+
+// If this is different from 0, it is used as the highest probability in the diagram instead.
+// Note that this ignores the height reserve set above.
+float maxProbabilityOverride = 0;
+
 
 // Ranges should be correct for DotA 1
 final float INNER_RADIUS = 140;
@@ -55,7 +61,7 @@ void draw()
   //fill(color(200, 200, 255, 20));
 
 
-  drawDiagram();
+  drawDiagram(OUTER_RADIUS + EXPLOSION_AOE, 2 * EXPLOSION_AOE);
 
   drawRanges();
 
@@ -99,9 +105,9 @@ void draw()
   strokeCap(ROUND);
 
   probabilities[x] = pSum;
-  maxProbability = max(maxProbability, pSum);
+  maxProbability = (maxProbabilityOverride > 0 ? maxProbabilityOverride * heightReserver : max(maxProbability, pSum));
 
-  drawProbabilities();
+  drawProbabilities(OUTER_RADIUS + EXPLOSION_AOE, 2 * EXPLOSION_AOE);
 }
 
 void mouseClicked()
@@ -110,25 +116,38 @@ void mouseClicked()
 }
 
 
-void drawProbabilities()
+void drawProbabilities(float xExtent, float yExtent)
 {
-  stroke(color(196, 52, 36, 200 / displayScale));
+  stroke(color(196, 52, 36, 200));
   resetMatrix();
   translate(width/2, height / 4);
-  scale(1 / displayScale);
-  strokeWeight(displayScale);
-  translate(midOffset, EXPLOSION_AOE);
-  float scale = 2 * EXPLOSION_AOE / maxProbability * heightReserver;
-
-  for (int r = 0; r < OUTER_RADIUS + EXPLOSION_AOE; r++)
-    if (probabilities[r] > 0)
-      line(r, -displayScale, r, -probabilities[r] * scale);
+  strokeWeight(1);
+  translate(midOffset / displayScale, yExtent / 2 / displayScale);
+  float yScale = yExtent / maxProbability * heightReserver / displayScale;
+  float xScale = 1 / displayScale;
+  
+  int r = 0;
+  for (int x = 0; x < xExtent + 1; x++)
+  {
+    float sum = 0;
+    int rCount = 0;
+    while (round(r * xScale) <= x)
+    {
+      if (r < probabilities.length)
+        sum += probabilities[r];
+      r++;
+      rCount++;
+    }
+    float averagedProbability = sum / rCount;
+    if (averagedProbability > 0)
+      line(x, -1, x, -averagedProbability * yScale);
+  }
 
   stroke(#A41414);
-  line(x, -displayScale, x, -probabilities[x] * scale);
+  line(x/displayScale, -1, x/displayScale, -probabilities[x] * yScale);
 }
 
-void drawDiagram()
+void drawDiagram(float xExtent, float yExtent)
 {
   // Outer rectangle
   stroke(color(200, 200, 255));
@@ -139,8 +158,8 @@ void drawDiagram()
   translate(width/2, height/4);
   scale(1 / displayScale);
   rectMode(CENTER);
-  rect(0, 0, OUTER_RADIUS + EXPLOSION_AOE, 2 * EXPLOSION_AOE + 1);
-
+  rect(0, 0, xExtent + 2, yExtent + 1);
+  
   // Titles
   fill(color(255));
   textSize(14);
@@ -151,28 +170,28 @@ void drawDiagram()
   resetMatrix();
   translate(width/2, height/4);
   // Cannot use scale() because that also makes text smaller
-  translate(-(OUTER_RADIUS + EXPLOSION_AOE) / 2 / displayScale, EXPLOSION_AOE / displayScale);
+  translate(-xExtent / 2 / displayScale, yExtent / 2 / displayScale);
   for (float i = 0; i <= diagramLabelCount; i++) 
   {
     pushMatrix();
-    translate(0, -i / diagramLabelCount * 2 * EXPLOSION_AOE / displayScale);
+    translate(0, -i / diagramLabelCount * yExtent / displayScale);
     t = nf(i / diagramLabelCount * maxProbability / heightReserver * 100, 1, 4) + "%";
     t = t.replace(",", "."); // Stupid locales
     if (i > 0) text(t, -textWidth(t) - 7, textAscent() - (textAscent() + textDescent())/2);
 
-    line(0, 0, (OUTER_RADIUS + EXPLOSION_AOE)  / displayScale, 0);
+    line(0, 0, xExtent / displayScale, 0);
     popMatrix();
   }
 
   for (float i = 0; i <= diagramLabelCount; i++)
   {
     pushMatrix();
-    translate(i / diagramLabelCount * (OUTER_RADIUS + EXPLOSION_AOE) / displayScale, 0);
-    t = str(i / diagramLabelCount * (OUTER_RADIUS + EXPLOSION_AOE));
+    translate(i / diagramLabelCount * xExtent / displayScale, 0);
+    t = str(i / diagramLabelCount * xExtent);
     t = t.replace(",", "."); // Stupid locales
     if (i > 0) text(t, -textWidth(t)/2, textAscent() + 1.5);
 
-    line(0, 0, 0, -2 * EXPLOSION_AOE / displayScale);
+    line(0, 0, 0, -yExtent / displayScale);
     popMatrix();
   }
   t = "0";
