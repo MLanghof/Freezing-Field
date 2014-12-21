@@ -6,7 +6,7 @@ float displayScale = 1;
 
 // Integration step. Increase for faster but less precise calculations.
 // Small values also make the visualization a bit more ugly.
-float dr = 2;
+float dr = 1;
 
 // Enable this so the integrated arcs are more distinguishable. 
 boolean alternatingColors = true;
@@ -27,9 +27,9 @@ float maxProbabilityOverride = 0.25;
 boolean filledGraph = false;
 
 // Ranges should be correct for DotA 1
-final float INNER_RADIUS = 140;
-final float OUTER_RADIUS = 710;
-final float EXPLOSION_AOE = 255;
+final float INNER_RADIUS = 195;
+final float OUTER_RADIUS = 785;
+final float EXPLOSION_AOE = 324;
 
 
 
@@ -98,8 +98,8 @@ void draw()
 
     if ((alternatingColors) && (int(r / dr) % 2 == 0)) stroke(color(164, 20, 20, INNER_RADIUS/r * 255));
     else stroke(color(196, 52, 36, INNER_RADIUS/r * 255));
-    arc(0, 0, r*2, r*2, 0, theta);
-    arc(0, 0, r*2, r*2, -theta, 0);
+    /*arc(0, 0, r*2, r*2, 0, theta);
+    arc(0, 0, r*2, r*2, -theta, 0);*/
 
     // Probability to get hit in this "differential" area = 
     //       P(correct angle)    *  P(this radius)
@@ -118,7 +118,10 @@ void mouseClicked()
 {
   automove = !automove;
 }
-
+void keyPressed()
+{
+  if (key == ' ') saveFrame("DotA 2 - 195 785 324.png");
+}
 
 void drawProbabilities(float xExtent, float yExtent)
 {
@@ -158,7 +161,7 @@ void drawProbabilities(float xExtent, float yExtent)
   }
 
   stroke(#AA1414);
-  line(x/displayScale, -1, x/displayScale, -probabilities[x] * yScale);
+  //line(x/displayScale, -1, x/displayScale, -probabilities[x] * yScale);
 }
 
 void drawDiagram(float xExtent, float yExtent)
@@ -196,12 +199,14 @@ void drawDiagram(float xExtent, float yExtent)
     line(0, 0, xExtent / displayScale, 0);
     popMatrix();
   }
-
-  for (float i = 0; i <= diagramLabelCount; i++)
+  
+  xExtent = 1200;
+  
+  for (float i = 0; i <= 11; i++)
   {
     pushMatrix();
-    translate(i / diagramLabelCount * xExtent / displayScale, 0);
-    t = str((i / diagramLabelCount) * xExtent);
+    translate(i * 100 / displayScale, 0);
+    t = str((i * 100));
     t = t.replace(",", "."); // Stupid locales
     if (i > 0) text(t, -textWidth(t)/2, textAscent() + 1.5);
 
@@ -234,8 +239,6 @@ void drawRanges()
   float tempAngle = asin(EXPLOSION_AOE * 1.1 / OUTER_RADIUS);
   arc(0, 0, OUTER_RADIUS*2, OUTER_RADIUS*2, -tempAngle, tempAngle);
 }
-
-
 
 ////////////////////////////////////
 // Alternative dr initializations //
