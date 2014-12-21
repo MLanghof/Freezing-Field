@@ -2,7 +2,7 @@
 // Scales down the displayed stuff.
 // Adjust this until the sketch fits your screen resolution.
 // In this case integer values yield better results.
-float displayScale = 2;
+float displayScale = 1;
 
 // Integration step. Increase for faster but less precise calculations.
 // Small values also make the visualization a bit more ugly.
@@ -14,14 +14,17 @@ boolean alternatingColors = true;
 // Controls the amount of axis annotations.
 int diagramLabelCount = 10;
 
+
 // Controls the amount of headroom the diagram leaves above the probabilities.
 // More precisely, this is the fraction of the diagram height that the graph will reach.
-float heightReserver = 1.2;
+float heightReserver = 0.8;
 
 // If this is different from 0, it is used as the highest probability in the diagram instead.
 // Note that this ignores the height reserve set above.
-float maxProbabilityOverride = 0;
+float maxProbabilityOverride = 0.25;
 
+// Setting this to true fills the area under the graph. False will result in a simple line plot.
+boolean filledGraph = false;
 
 // Ranges should be correct for DotA 1
 final float INNER_RADIUS = 140;
@@ -61,7 +64,8 @@ void draw()
   //fill(color(200, 200, 255, 20));
 
 
-  drawDiagram(OUTER_RADIUS + EXPLOSION_AOE, 2 * EXPLOSION_AOE);
+  //drawDiagram(OUTER_RADIUS + EXPLOSION_AOE, 2 * EXPLOSION_AOE);
+  drawDiagram(OUTER_RADIUS + EXPLOSION_AOE, 600);
 
   drawRanges();
 
@@ -83,7 +87,7 @@ void draw()
   // Two other ways of choosing the starting r can be found at the end of this file. For larger dr, they are inferior though.
   for (float r = INNER_RADIUS + dr/2; r <= OUTER_RADIUS - dr/2; r += dr)
   {
-    // This is not the most efficient way, but pretty clear. Besides, the theta arcs don't move with x.
+    // This is not the most efficient way, but pretty clear. Besides, the arcs don't move around with x.
     if ((r < x - EXPLOSION_AOE + dr/2) || (r > x + EXPLOSION_AOE - dr/2)) continue;
     
     float arg = (sq(x) - sq(EXPLOSION_AOE) + sq(r)) / (2.0 * x * r);
@@ -97,8 +101,7 @@ void draw()
     arc(0, 0, r*2, r*2, 0, theta);
     arc(0, 0, r*2, r*2, -theta, 0);
 
-    //println(arg + ", " + theta);
-    // Probability to get hit in this differential area = 
+    // Probability to get hit in this "differential" area = 
     //       P(correct angle)    *  P(this radius)
     pSum += (2 * theta / TWO_PI) * (dr / (OUTER_RADIUS - INNER_RADIUS));
   }
@@ -107,7 +110,8 @@ void draw()
   probabilities[x] = pSum;
   maxProbability = (maxProbabilityOverride > 0 ? maxProbabilityOverride * heightReserver : max(maxProbability, pSum));
 
-  drawProbabilities(OUTER_RADIUS + EXPLOSION_AOE, 2 * EXPLOSION_AOE);
+  //drawProbabilities(OUTER_RADIUS + EXPLOSION_AOE, 2 * EXPLOSION_AOE);
+  drawProbabilities(1200, 600);
 }
 
 void mouseClicked()
@@ -127,6 +131,8 @@ void drawProbabilities(float xExtent, float yExtent)
   float xScale = 1 / displayScale;
   
   int r = 0;
+  float previousY = Float.NaN;
+  float previousX = Float.NaN;
   for (int x = 0; x < xExtent + 1; x++)
   {
     float sum = 0;
@@ -140,10 +146,18 @@ void drawProbabilities(float xExtent, float yExtent)
     }
     float averagedProbability = sum / rCount;
     if (averagedProbability > 0)
-      line(x, -1, x, -averagedProbability * yScale);
+      if (filledGraph)
+        line(x, -1, x, -averagedProbability * yScale);
+      else
+      {
+        if (x-1 == previousX) line(x-1, previousY, x, -averagedProbability * yScale);
+        else point(x, -averagedProbability * yScale);
+        previousY = -averagedProbability * yScale;
+        previousX = x;
+      }
   }
 
-  stroke(#A41414);
+  stroke(#AA1414);
   line(x/displayScale, -1, x/displayScale, -probabilities[x] * yScale);
 }
 
@@ -171,13 +185,13 @@ void drawDiagram(float xExtent, float yExtent)
   translate(width/2, height/4);
   // Cannot use scale() because that also makes text smaller
   translate(-xExtent / 2 / displayScale, yExtent / 2 / displayScale);
-  for (float i = 0; i <= diagramLabelCount; i++) 
+  for (float i = 0; i <= diagramLabelCount; i++) // Defining i as float saves us the conversion later
   {
     pushMatrix();
     translate(0, -i / diagramLabelCount * yExtent / displayScale);
-    t = nf(i / diagramLabelCount * maxProbability / heightReserver * 100, 1, 4) + "%";
+    t = nf((maxProbability * 100) * (i / diagramLabelCount) / heightReserver, 1, 4) + "%";
     t = t.replace(",", "."); // Stupid locales
-    if (i > 0) text(t, -textWidth(t) - 7, textAscent() - (textAscent() + textDescent())/2);
+    if (i > 0) text(t, -textWidth(t) - 7, (textAscent() - textDescent())/2); // Typography magic!
 
     line(0, 0, xExtent / displayScale, 0);
     popMatrix();
@@ -187,7 +201,7 @@ void drawDiagram(float xExtent, float yExtent)
   {
     pushMatrix();
     translate(i / diagramLabelCount * xExtent / displayScale, 0);
-    t = str(i / diagramLabelCount * xExtent);
+    t = str((i / diagramLabelCount) * xExtent);
     t = t.replace(",", "."); // Stupid locales
     if (i > 0) text(t, -textWidth(t)/2, textAscent() + 1.5);
 
